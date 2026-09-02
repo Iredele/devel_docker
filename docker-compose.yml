@@ -1,0 +1,35 @@
+services:
+  devbox:
+    build:
+      context: .
+      args:
+        INSTALL_ZEPHYR: ${INSTALL_ZEPHYR:-true}
+        INSTALL_ESPIDF: ${INSTALL_ESPIDF:-true}
+    container_name: devbox
+    # CMD is a bare `/bin/bash` (see Dockerfile) so you can attach to it
+    # directly if you want, but its real job here is just to be a foreground
+    # process that outlives startup: without a tty/stdin, bash hits EOF
+    # immediately under `docker compose up -d` and the container exits right
+    # away, taking sshd down with it. `docker compose exec`/ssh in (see
+    # below) get their own shell either way.
+    tty: true
+    stdin_open: true
+    ports:
+      - "2222:22"          # SSH: ssh root@localhost -p 2222 (password: zephyr)
+    volumes:
+      # Mounted INSIDE the west workspace topdir (not at /workspace directly)
+      # so `west build` can find it. /workspace in the container is a symlink
+      # to this same path — see the note in the Dockerfile.
+      - /Users/TheOneAboveAll/Desktop/devel:/opt/toolchains/workspace
+      - zephyr-cache:/root/.cache
+      - espidf-tools:/opt/toolchains/esp-idf-tools
+
+    # Uncomment for flashing via USB on Linux:
+    # privileged: true
+    # devices:
+    #   - /dev/ttyUSB0:/dev/ttyUSB0   # CP2102 (most ESP32 devkits)
+    #   - /dev/ttyACM0:/dev/ttyACM0   # Some newer boards
+
+volumes:
+  zephyr-cache:
+  espidf-tools:
